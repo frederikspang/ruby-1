@@ -5,6 +5,11 @@
 	def is_slim:
 		env.variant | startswith("slim-")
 	;
+	def is_debian:
+		env.variant | startswith("bullseye")
+		or (env.variant | startswith("buster"))
+		or (is_slim)
+	;
 	def should_yjit:
 		# https://github.com/docker-library/ruby/issues/390
 		([ "2.7", "3.0", "3.1" ] | index(env.version) | not)
@@ -132,6 +137,11 @@ RUN set -eux; \
 	rm -rf /var/lib/apt/lists/*; \
 {{ ) end -}}
 	\
+{{ if is_debian then ( -}}
+	wget -O- https://sh.rustup.rs | sh -s -- -y; \
+	. "$HOME/.cargo/env"; \
+{{ ) else "" end -}}
+	\
 	wget -O ruby.tar.xz "https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR%-rc}/ruby-$RUBY_VERSION.tar.xz"; \
 	echo "$RUBY_DOWNLOAD_SHA256 *ruby.tar.xz" | sha256sum --check --strict; \
 	\
@@ -185,6 +195,9 @@ RUN set -eux; \
 {{ if should_yjit then ( -}}
 		${yjit:+--enable-yjit} \
 {{ ) else "" end -}}
+{{ if is_debian then ( -}}
+		--enable-yjit \
+{{ ) else "" end -}}
 	; \
 	make -j "$(nproc)"; \
 	make install; \
@@ -213,6 +226,9 @@ RUN set -eux; \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
 {{ ) end -}}
 	\
+{{ if is_debian then ( -}}
+	rustup self uninstall -y; \
+{{ ) else "" end -}}
 	cd /; \
 	rm -r /usr/src/ruby; \
 # verify we have no "ruby" packages installed

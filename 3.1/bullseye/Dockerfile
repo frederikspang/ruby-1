@@ -33,6 +33,9 @@ RUN set -eux; \
 	; \
 	rm -rf /var/lib/apt/lists/*; \
 	\
+	wget -O- https://sh.rustup.rs | sh -s -- -y; \
+	. "$HOME/.cargo/env"; \
+	\
 	wget -O ruby.tar.xz "https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR%-rc}/ruby-$RUBY_VERSION.tar.xz"; \
 	echo "$RUBY_DOWNLOAD_SHA256 *ruby.tar.xz" | sha256sum --check --strict; \
 	\
@@ -57,6 +60,7 @@ RUN set -eux; \
 		--build="$gnuArch" \
 		--disable-install-doc \
 		--enable-shared \
+		--enable-yjit \
 	; \
 	make -j "$(nproc)"; \
 	make install; \
@@ -74,6 +78,7 @@ RUN set -eux; \
 	; \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
 	\
+	rustup self uninstall -y; \
 	cd /; \
 	rm -r /usr/src/ruby; \
 # verify we have no "ruby" packages installed
